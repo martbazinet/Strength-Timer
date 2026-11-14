@@ -1,0 +1,91 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17243b"><title>Strength Timer</title><style>body{margin:0;background:#101827;color:#f7f9fc;font:17px system-ui,-apple-system,sans-serif}main{max-width:520px;margin:auto;padding:24px}h1{font-size:29px}button{font:inherit;border:0;border-radius:13px;padding:14px 18px;cursor:pointer}button.primary{background:#8ce2bd;color:#10271e;font-weight:750}button.secondary{background:#2b3b53;color:white}button:disabled{opacity:.45}.controls,.choices{display:flex;gap:10px;flex-wrap:wrap}.panel{background:#1c2a40;border-radius:22px;padding:24px;margin:20px 0;text-align:center}.phase{color:#8ce2bd;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.clock{font-size:84px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3}.exercise{font-size:24px;font-weight:700}.sub{color:#b7c4d5}ol{line-height:1.9}small{color:#b7c4d5}button.active{outline:2px solid #8ce2bd} .settings{display:flex;gap:16px;flex-wrap:wrap;align-items:end;margin:18px 0}.settings label{display:grid;gap:7px;color:#b7c4d5}.settings input{width:95px;padding:11px;border-radius:10px;border:1px solid #52627b;background:#1c2a40;color:white;font:inherit} .settings p{width:100%;margin:0}
+.visual{background:#142137;border:1px solid #40536b;border-radius:18px;padding:12px;margin:16px auto;max-width:340px}
+.visual svg{width:100%;height:160px}
+.instructions{font-size:15px;line-height:1.5;text-align:left;color:#e0e9f3;padding:0 6px}
+.exercise-library{display:grid;gap:10px}
+.guide{background:#1c2a40;border:1px solid #364760;border-radius:14px;padding:12px;display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:center}
+.guide svg{width:100px;height:95px;background:#142137;border-radius:10px}
+.guide strong{display:block;margin-bottom:5px}.guide p{font-size:14px;color:#c6d3e3;margin:0;line-height:1.4}
+@media(max-width:370px){.clock{font-size:66px}.guide{grid-template-columns:85px 1fr}.guide svg{width:85px}}
+</style><main><h1>Strength Timer</h1><p class="sub">Upper body + core · adjustable intervals</p><div class="choices"><button id="a" class="secondary active">Workout A</button><button id="b" class="secondary">Workout B</button></div><div class="settings"><label>Exercise (seconds)<input id="work" type="number" min="15" max="180" step="5" value="40"></label><label>Rest (seconds)<input id="rest" type="number" min="5" max="120" step="5" value="20"></label><p class="sub" id="duration"></p></div><div class="panel"><div id="phase" class="phase">Ready</div><div id="clock" class="clock">30:00</div><div id="exercise" class="exercise">Press Start</div><div class="visual" id="illustration" aria-label="Exercise illustration"></div><p id="instructions" class="instructions"></p><p id="detail" class="sub">Warm-up → Block 1 → Recovery → Block 2 → Core → Cooldown</p><p id="next" class="sub"></p></div><div class="controls"><button id="start" class="primary">Start</button><button id="pause" class="secondary" disabled>Pause</button><button id="reset" class="secondary">Restart</button></div><h2>Exercises</h2><div id="library" class="exercise-library"></div><p><small>Move with control, not speed. Use moderate weights initially and stop for pain or loss of form. Changing interval settings restarts the session. The total duration adjusts accordingly. The timer may pause when iOS suspends the browser; keep the screen awake during workouts.</small></p></main><script>
+
+const guides={
+'Dumbbell floor press':['Lie on your back, knees bent. Press the dumbbells above your chest, then lower elbows gently toward the floor.','floor'],
+'Bent-over dumbbell row':['Hinge at the hips with a flat back. Pull dumbbells toward your hips; lower slowly without shrugging.','row'],
+'Push-ups':['Keep a straight line from shoulders to heels (or knees). Lower your chest with control and press up.','push'],
+'Front plank':['Brace your abdomen, keep elbows beneath shoulders and hips level. Breathe steadily; avoid arching your back.','plank'],
+'Dumbbell shoulder press':['Stand tall, ribs down. Press dumbbells overhead without leaning back; lower slowly.','press'],
+'Dumbbell biceps curl':['Keep elbows near your sides. Curl the dumbbells up without swinging, then lower slowly.','curl'],
+'Dumbbell Romanian deadlift':['Keep knees soft, hinge hips backward with weights near legs, then stand tall by driving through your feet.','hinge'],
+'Side plank (alternate sides)':['Keep elbow under shoulder, lift hips into a straight line. Switch sides halfway through the interval.','side'],
+'Dead bug':['Lie on your back with arms and knees raised. Slowly extend opposite arm and leg; keep lower back gently against mat.','dead'],
+'Bird dog':['Start on hands and knees. Reach opposite arm and leg long, keep hips steady, then switch sides.','bird'],
+'Easy mobility and light movements':['March in place, roll shoulders, make gentle arm circles, and practice unloaded hip hinges.','warm'],
+'Rest and change weights':['Breathe, shake out your arms, and get your next dumbbells ready.','rest'],
+'Breathe and prepare':['Relax your shoulders, breathe slowly, and prepare for the next movement.','rest'],
+'Breathe':['Recover and get ready for the next interval.','rest'],
+'Gentle stretching and breathing':['Slow breathing and comfortable chest, shoulder, and hip stretches.','cool']
+};
+function drawing(kind){
+ const head=(x,y)=>`<circle cx="${x}" cy="${y}" r="9" fill="#f2d5ad"/>`;
+ const line=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+ const weight=(x,y)=>`<rect x="${x-10}" y="${y-4}" width="20" height="8" rx="2" fill="#f0b66c" stroke="#f0b66c"/>`;
+ let d='';
+ switch(kind){
+ case 'floor':
+ d=head(48,102)+line(56,110,116,110)+line(115,110,142,85)+line(142,85,160,110)+line(83,110,83,65)+line(112,110,112,65)+weight(83,60)+weight(112,60);break;
+ case 'row':
+ d=head(96,39)+line(96,49,132,90)+line(132,90,168,103)+line(132,90,121,127)+line(132,90,155,127)+line(108,65,95,105)+line(119,77,145,105)+weight(95,108)+weight(145,108);break;
+ case 'push':
+ d=head(53,75)+line(63,82,156,91)+line(156,91,174,122)+line(86,84,76,124)+line(113,87,106,124);break;
+ case 'plank':
+ d=head(48,80)+line(58,88,155,91)+line(155,91,177,124)+line(86,89,76,119)+line(76,119,55,119);break;
+ case 'press':
+ d=head(110,32)+line(110,44,110,99)+line(110,99,82,135)+line(110,99,138,135)+line(108,55,73,42)+line(73,42,73,18)+line(112,55,147,42)+line(147,42,147,18)+weight(73,15)+weight(147,15);break;
+ case 'curl':
+ d=head(110,32)+line(110,43,110,100)+line(110,100,85,135)+line(110,100,135,135)+line(109,57,82,77)+line(82,77,96,56)+line(112,57,140,77)+line(140,77,126,56)+weight(96,54)+weight(126,54);break;
+ case 'hinge':
+ d=head(64,58)+line(73,65,121,91)+line(121,91,126,129)+line(121,91,161,126)+line(92,76,85,120)+line(111,86,135,120)+weight(85,123)+weight(135,123);break;
+ case 'side':
+ d=head(51,75)+line(61,82,158,90)+line(158,90,179,121)+line(84,85,75,122)+line(75,122,53,122)+line(111,87,116,50);break;
+ case 'dead':
+ d=head(47,106)+line(56,112,114,112)+line(82,112,84,64)+line(112,112,143,74)+line(143,74,166,74)+line(74,112,55,69);break;
+ case 'bird':
+ d=head(76,68)+line(84,75,140,89)+line(100,80,55,51)+line(140,89,176,62)+line(110,83,101,125)+line(140,89,151,125);break;
+ default:
+ d=head(110,35)+line(110,46,110,95)+line(110,95,85,133)+line(110,95,135,133)+line(110,58,75,83)+line(110,58,145,83);
+ }
+ return `<svg viewBox="0 0 220 150" role="img" aria-label="Simplified ${kind} exercise position" xmlns="http://www.w3.org/2000/svg"><path d="M20 137 H200" stroke="#53677f" stroke-width="2"/> <g fill="none" stroke="#8ce2bd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">${d}</g></svg>`;
+}
+function showGuide(name){
+ const [tip,kind]=guides[name]||guides['Breathe'];
+ document.getElementById('illustration').innerHTML=drawing(kind);
+ document.getElementById('instructions').textContent=tip;
+}
+function renderLibrary(){
+ const names=[...routines[selected],selected==='A'?'Dead bug':'Bird dog'];
+ document.getElementById('library').innerHTML=names.map(name=>{
+ const [tip,kind]=guides[name];
+ return `<div class="guide">${drawing(kind)}<div><strong>${name}</strong><p>${tip}</p></div></div>`;
+ }).join('');
+}
+
+const routines={A:['Dumbbell floor press','Bent-over dumbbell row','Push-ups','Front plank'],B:['Dumbbell shoulder press','Dumbbell biceps curl','Dumbbell Romanian deadlift','Side plank (alternate sides)']};let selected='A',workSeconds=40,restSeconds=20,steps=[],index=0,remaining=0,running=false,tick=null,last=0,ctx=null;
+function add(label,name,seconds,detail){steps.push({label,name,seconds,detail})}function build(){steps=[];add('Warm-up','Easy mobility and light movements',240,'4 minutes');for(let i=0;i<8;i++){let name=routines[selected][i%2];add('Block 1 · Round '+(Math.floor(i/2)+1),name,workSeconds,'Work');add('Rest','Breathe and prepare',restSeconds,'Next: '+routines[selected][(i+1)%2]);}add('Recovery','Rest and change weights',120,'2 minutes');for(let i=0;i<8;i++){let name=routines[selected][2+i%2];add('Block 2 · Round '+(Math.floor(i/2)+1),name,workSeconds,'Work');add('Rest','Breathe and prepare',restSeconds,'Next: '+routines[selected][2+(i+1)%2]);}for(let i=0;i<4;i++){add('Core finisher · Round '+(i+1),selected==='A'?'Dead bug': 'Bird dog',workSeconds,'Controlled reps');add('Rest','Breathe',restSeconds,'Recovery');}add('Cooldown','Gentle stretching and breathing',240,'4 minutes');} // 4+8+2+8+4+4 =30
+function format(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')}function totalLeft(){return remaining+steps.slice(index+1).reduce((s,x)=>s+x.seconds,0)}function render(){let s=steps[index];document.getElementById('phase').textContent=index>=steps.length?'Complete':s.label;document.getElementById('clock').textContent=index>=steps.length?'00:00':format(remaining);document.getElementById('exercise').textContent=index>=steps.length?'Great work!':s.name;document.getElementById('detail').textContent=index>=steps.length?'Workout finished':s.detail+' · Total remaining '+format(totalLeft());document.getElementById('next').textContent=index+1<steps.length?'Next: '+steps[index+1].name:'';showGuide(index>=steps.length?'Breathe':s.name);document.getElementById('pause').disabled=!running;document.getElementById('pause').textContent=tick?'Pause':'Resume';document.getElementById('start').disabled=running;}function beep(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();ctx.resume();let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=740;g.gain.value=.08;o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.15)}catch(e){}}function advance(){index++;if(index>=steps.length){clearInterval(tick);tick=null;running=false;beep();render();return}remaining=steps[index].seconds;beep()}function pulse(){let now=performance.now();remaining-=(now-last)/1000;last=now;while(remaining<=0&&index<steps.length){let extra=-remaining;advance();if(index<steps.length)remaining-=extra}render()}function stop(){clearInterval(tick);tick=null}function reset(){stop();running=false;build();index=0;remaining=steps[0].seconds;document.getElementById('duration').textContent='Estimated session: '+format(steps.reduce((sum,s)=>sum+s.seconds,0))+' (including warm-up and cooldown)';render();renderLibrary()}document.getElementById('start').onclick=()=>{if(running)return;running=true;last=performance.now();tick=setInterval(pulse,100);render()};document.getElementById('pause').onclick=()=>{if(tick){pulse();stop()}else{last=performance.now();tick=setInterval(pulse,100)}render()};document.getElementById('reset').onclick=reset;
+for(const [id,key,defaultValue] of [['work','strengthWork',40],['rest','strengthRest',20]]){
+ const el=document.getElementById(id);
+ const saved=Number(localStorage.getItem(key));
+ if(saved>=Number(el.min)&&saved<=Number(el.max))el.value=saved;
+ el.addEventListener('change',()=>{
+  let n=Math.round(Number(el.value)/5)*5;
+  n=Math.max(Number(el.min),Math.min(Number(el.max),Number.isFinite(n)?n:defaultValue));
+  el.value=n;localStorage.setItem(key,String(n));
+  workSeconds=Number(document.getElementById('work').value);
+  restSeconds=Number(document.getElementById('rest').value);
+  reset();
+ });
+}
+workSeconds=Number(document.getElementById('work').value);
+restSeconds=Number(document.getElementById('rest').value);for(const v of ['a','b'])document.getElementById(v).onclick=()=>{selected=v.toUpperCase();document.getElementById('a').classList.toggle('active',v==='a');document.getElementById('b').classList.toggle('active',v==='b');reset()};reset();
+</script></html>
